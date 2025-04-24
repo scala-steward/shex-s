@@ -17,6 +17,7 @@ import io.circe._
 import io.circe.syntax._
 import es.weso.shex.Extends
 import es.weso.shex.References
+import es.weso.shex.Schema
 
 sealed abstract class ShowMethod {
   val name: String
@@ -61,6 +62,7 @@ case class SchemaCommand(
     schema <- schemaSpec.getSchema(verbose)
     resolved <- ResolvedSchema.resolve(schema, schemaSpec.baseIRI, verbose)
     _ <- showShapeLabels(resolved)
+    _ <- showWellFormed(schema)
     _ <-
       if (showInheritance) runShowInheritance(resolved)
       else IO.pure(())
@@ -69,6 +71,16 @@ case class SchemaCommand(
       case Some(sl) => runShowShapeLabel(sl, resolved, showMethod)
     }
   } yield ExitCode.Success
+
+  private def showWellFormed(schema: Schema): IO[Unit] = {
+    val wellFormed = schema.wellFormed
+    wellFormed match {
+      case Left(msg) =>
+        IO.println(s"Schema is NOT well-formed: ${msg}")
+      case Right(_) =>
+        IO.println("Schema is well-formed")
+    }
+  }
 
   private def showShapeLabels(schema: ResolvedSchema): IO[Unit] = {
     val labels = schema.resolvedMapShapeExprs.keySet

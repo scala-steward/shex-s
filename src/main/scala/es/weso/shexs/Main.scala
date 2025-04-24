@@ -10,6 +10,8 @@ import es.weso.shex.validator.Validator
 import es.weso.shextest.manifest.{Validate => _, _}
 import com.monovore.decline._
 import com.monovore.decline.effect._
+import com.typesafe.scalalogging.LazyLogging
+
 // import buildinfo._
 import java.nio.file.Path
 import es.weso.shapepath.schemamappings.SchemaMappings
@@ -45,7 +47,8 @@ object Main
       name = "shex-s",
       header = "ShEx-Scala command line tool",
       version = "0.2.2" // BuildInfo.version
-    ) {
+    )
+    with LazyLogging {
 
   lazy val mappingOpt = Opts.option[Path](
     "mapping",
@@ -72,7 +75,31 @@ object Main
     if (verbose) IO.println(msg)
     else IO(())
 
-  override def main: Opts[IO[ExitCode]] =
+  private def disable_logs(): Unit = {
+    // The following code is needed to remove extra logging from Jena
+    import org.apache.jena.riot.system.stream.JenaIOEnvironment
+    import org.apache.jena.riot.system.stream.LocationMapper
+    val mapper: LocationMapper = new LocationMapper()
+    JenaIOEnvironment.setGlobalLocationMapper(mapper)
+
+    // Force logging level to None
+    val log: ch.qos.logback.classic.Logger =
+      logger.underlying.asInstanceOf[ch.qos.logback.classic.Logger]
+    log.getName()
+    import org.slf4j.LoggerFactory
+    import ch.qos.logback.classic._
+    val es_weso_log: ch.qos.logback.classic.Logger =
+      LoggerFactory.getLogger("es.weso").asInstanceOf[ch.qos.logback.classic.Logger]
+    val org_log: ch.qos.logback.classic.Logger =
+      LoggerFactory.getLogger("org").asInstanceOf[ch.qos.logback.classic.Logger]
+    org_log.setLevel(Level.OFF)
+    es_weso_log.setLevel(Level.OFF)
+    log.setLevel(Level.OFF)
+
+  }
+
+  override def main: Opts[IO[ExitCode]] = {
+    disable_logs()
     schemaMappingCommand
       .orElse(Validate.validateCommand)
       .orElse(shapePathValidateCommand)
@@ -90,6 +117,7 @@ object Main
       .map(
         _.handleErrorWith(infoError)
       )
+  }
 
   def infoError(err: Throwable): IO[ExitCode] =
     IO.println(s"Error ${err.getLocalizedMessage()}") *> IO(ExitCode.Error)

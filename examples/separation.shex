@@ -1,0 +1,8 @@
+prefix :       <http://example.org/> 
+
+# Separation test 
+:S {
+    :p @:S +
+}
+
+:S1 NOT @:S 

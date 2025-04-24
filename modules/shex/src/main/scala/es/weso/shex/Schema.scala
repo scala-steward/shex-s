@@ -130,8 +130,8 @@ case class Schema(
     _ <- shapesMap.keySet.toList.map(lbl => checkShapeLabel(lbl)).sequence
   } yield (())
 
-  private lazy val checkOddNegCycles: Either[String, Unit] =
-    // println(s"OddNegCycles: $oddNegCycles")
+  private lazy val checkOddNegCycles: Either[String, Unit] = {
+    println(s"OddNegCycles: $oddNegCycles")
     oddNegCycles match {
       case Left(e) => Left(e)
       case Right(cs) =>
@@ -139,12 +139,13 @@ case class Schema(
         else
           Left(s"Negative cycles: ${showCycles(oddNegCycles)}")
     }
+  }
 
   lazy val wellFormed: Either[String, Unit] = for {
     _ <- checkOddNegCycles
-    // _ <- { println(s"Passed checkOddNegCycles..."); Right(())}
+    _ <- { println(s"Passed checkOddNegCycles..."); Right(()) }
     _ <- checkBadShapeLabels
-    // _ <- { println(s"Passed checkBadShapeLabels..."); Right(())}
+    _ <- { println(s"Passed checkBadShapeLabels..."); Right(()) }
   } yield (())
 
   def relativize(maybeBase: Option[IRI]): Schema = maybeBase match {
@@ -161,7 +162,7 @@ case class Schema(
   def resolve(base: Option[IRI], verbose: VerboseLevel): IO[ResolvedSchema] =
     ResolvedSchema.resolve(this, base, verbose)
 
-  def withId(iri: IRI): Schema = this.copy(id = iri)  
+  def withId(iri: IRI): Schema = this.copy(id = iri)
 
   def withShapes(ses: ShapeExpr*): Schema = this.copy(shapes = ses.toList.some)
 
@@ -176,7 +177,6 @@ object Schema {
 
   def emptyWithId(iri: IRI): Schema =
     Schema.empty.withId(iri)
-
 
   def fromIRI(
       i: IRI,
