@@ -1,5 +1,4 @@
 prefix :       <http://example.org/> 
 
-# Separation test 
+# Separation test 1
 :S { :p @:S + }
-:S1 NOT @:S 

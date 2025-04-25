@@ -101,13 +101,13 @@ case class Schema(
   def addTripleExprMap(te: Map[ShapeLabel, TripleExpr]): Schema =
     this.copy(optTripleExprMap = Some(te))
 
-  def oddNegCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
+  lazy val oddNegCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
     Dependencies.oddNegCycles(this)
 
-  def negCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
+  lazy val negCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
     Dependencies.negCycles(this)
 
-  def depGraph: Either[String, DepGraph[ShapeLabel]] =
+  lazy val depGraph: Either[String, DepGraph[ShapeLabel]] =
     Dependencies.depGraph(this)
 
   def showCycles(str: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]]): String = str match {
@@ -130,8 +130,8 @@ case class Schema(
     _ <- shapesMap.keySet.toList.map(lbl => checkShapeLabel(lbl)).sequence
   } yield (())
 
-  private lazy val checkOddNegCycles: Either[String, Unit] = {
-    println(s"OddNegCycles: $oddNegCycles")
+  private lazy val checkOddNegCycles: Either[String, Unit] =
+    // println(s"OddNegCycles: $oddNegCycles")
     oddNegCycles match {
       case Left(e) => Left(e)
       case Right(cs) =>
@@ -139,7 +139,6 @@ case class Schema(
         else
           Left(s"Negative cycles: ${showCycles(oddNegCycles)}")
     }
-  }
 
   lazy val wellFormed: Either[String, Unit] = for {
     _ <- checkOddNegCycles

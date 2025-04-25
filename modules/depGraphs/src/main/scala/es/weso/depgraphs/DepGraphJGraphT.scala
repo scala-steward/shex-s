@@ -46,7 +46,7 @@ case class DepGraphJGraphT[Node]() extends DepGraph[Node] with LazyLogging {
     // if (!graph.containsVertex(node))
     graph.addVertex(node)
 
-  private def addEdge(node1: Node, node2: Node, edge: Edge): DepGraph[Node] = {
+  private def addEdgeInternal(node1: Node, node2: Node, edge: Edge): DepGraph[Node] = {
     checkVertex(node1)
     checkVertex(node2)
     graph.addEdge(node1, node2, edge)
@@ -61,14 +61,19 @@ case class DepGraphJGraphT[Node]() extends DepGraph[Node] with LazyLogging {
     checkVertex(node2)
     this.edgeBetween(node1, node2) match {
       case Some(pn) =>
+        // println(s"Edge between $node1 and $node2 already exists with posNeg $pn")
         removeEdge(node1, node2)
-        addEdge(node1, node2, Edge(node1, pn.combine(posNeg), node2))
-      case None => addEdge(node1, node2, Edge(node1, posNeg, node2))
+        val newPosNeg = pn.combine(posNeg)
+        val result = addEdgeInternal(node1, node2, Edge(node1, newPosNeg, node2))
+        // println(s"New edge added $node1 and $node2 posNeg $newPosNeg")
+        result
+      case None => addEdgeInternal(node1, node2, Edge(node1, posNeg, node2))
     }
   }
 
   override def edgeBetween(node1: Node, node2: Node): Option[PosNeg] = {
-    val outEdges = graph.edgesOf(node1).asScala.toSet
+    val outEdges: Set[Edge] = graph.outgoingEdgesOf(node1).asScala.toSet
+    // println(s"outEdges($node1)=$outEdges")
     outEdges.collect { case e: Edge if e.target == node2 => e.posNeg }.headOption
   }
 
@@ -89,7 +94,7 @@ case class DepGraphJGraphT[Node]() extends DepGraph[Node] with LazyLogging {
     }
 
   private def containsNegEdge(g: Graph[Node, Edge]): Boolean =
-    g.edgeSet.asScala.exists(e => e.posNeg == Neg || e.posNeg == Both)
+    g.edgeSet.asScala.exists(e => e.posNeg == Neg) // || e.posNeg == Both)
 
   override def negCycles: Set[Set[(Node, Node)]] = {
     val scAlg: StrongConnectivityAlgorithm[Node, Edge] =
@@ -112,9 +117,9 @@ case class DepGraphJGraphT[Node]() extends DepGraph[Node] with LazyLogging {
 
   def showPosNeg(pn: PosNeg): String =
     pn match {
-      case Pos  => "-(+)->"
-      case Neg  => "-(-)->"
-      case Both => "-(-/+)->"
+      case Pos => "-(+)->"
+      case Neg => "-(-)->"
+      // case Both => "-(-/+)->"
     }
 
   def showEdges(showNode: Node => String): String = {

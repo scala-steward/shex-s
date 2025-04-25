@@ -22,13 +22,12 @@ object Dependencies {
     *  If the set is empy, there are no negated cycles.
     */
   def negCycles(schema: Schema): ES[Set[Set[(ShapeLabel, ShapeLabel)]]] =
-    depGraph(schema).map(_.negCycles)
+    schema.depGraph.map(_.negCycles)
 
   def oddNegCycles(schema: Schema): ES[Set[Set[(ShapeLabel, ShapeLabel)]]] =
     // depGraph(schema).map(_.oddNegCycles)
     for {
-      dg <- depGraph(schema)
-      _ <- { println(s"Dependency graph: $dg"); Right(()) }
+      dg <- schema.depGraph
       negCycles = dg.negCycles.filter(nc => dg.countNegLinks(nc) % 2 == 1)
     } yield negCycles
 
@@ -43,7 +42,11 @@ object Dependencies {
       case None         => emptyGraph
       case Some(shapes) => shapes.foldRight(emptyGraph)(addDependency(schema))
     }
-    println(s"Dependency graph: $r")
+    /*r match {
+      case Left(s) => println(s"Error calculating dependency graph: $s")
+      case Right(g) =>
+        println(s"Dependency graph generated:\n${g.showEdges(_.toString)}\n---")
+    }*/
     r
   }
 
@@ -51,7 +54,7 @@ object Dependencies {
     deps.foldRight(graph)(combine)
 
   def combine(d: Dep, g: DepGraph[ShapeLabel]): DepGraph[ShapeLabel] =
-//    println(s"Adding edge $d to graph: $g")
+    // println(s"Adding edge $d to graph: $g")
     g.addEdge(d._1, d._2, d._3)
 
   def addDependency(
@@ -61,6 +64,7 @@ object Dependencies {
       g <- graph
       label <- getLabel(se)
       deps <- dependencies(schema, se, label, Pos)
+      // _ <- { println(s"dependencies: ${deps}"); Right(()) }
     } yield addDependencies(g, deps)
 
   def getLabel(se: ShapeExpr): ES[ShapeLabel] =
@@ -71,10 +75,8 @@ object Dependencies {
       shape: ShapeExpr,
       source: ShapeLabel,
       posNeg: PosNeg
-  ): ES[Deps] = {
-    println(
-      s"Calculating dependencies of shape $shape with source label $source and posNeg $posNeg"
-    )
+  ): ES[Deps] =
+    // println(s"Calculating dependencies of $source with shapeExpr $shape, posNeg $posNeg")
     shape match {
       case s: ShapeAnd =>
         s.shapeExprs.map(dependencies(schema, _, source, posNeg)).sequence[ES, Deps].map(_.flatten)
@@ -83,7 +85,7 @@ object Dependencies {
         s.shapeExprs.map(dependencies(schema, _, source, posNeg)).sequence[ES, Deps].map(_.flatten)
 
       case s: ShapeNot =>
-        dependencies(schema, s.shapeExpr, source, Neg)
+        dependencies(schema, s.shapeExpr, source, posNeg.change)
 
       case _: NodeConstraint => noDeps
 
@@ -109,7 +111,6 @@ object Dependencies {
       case _: ShapeExternal => noDeps
       case sd: ShapeDecl    => dependencies(schema, sd.shapeExpr, source, posNeg)
     }
-  }
 
   def dependenciesTripleExpr(
       schema: Schema,
@@ -117,7 +118,6 @@ object Dependencies {
       tripleExpr: TripleExpr,
       posNeg: PosNeg
   ): ES[Deps] =
-    // println(s"Calculating dependencies of tripleExpr $tripleExpr with source label $source and posNeg $posNeg")
     tripleExpr match {
       case t: EachOf =>
         // TODO: Take into account max cardinality = 0 as a negative dependency?
@@ -143,7 +143,7 @@ object Dependencies {
           case Some(ve) =>
             if (tc.max == IntMax(0)) {
               // TODO: Should it be negative dependency?
-              dependencies(schema, ve, source, posNeg.change)
+              dependencies(schema, ve, source, posNeg)
             } else {
               dependencies(schema, ve, source, posNeg)
             }

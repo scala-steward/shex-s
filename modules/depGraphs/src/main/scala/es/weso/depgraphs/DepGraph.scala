@@ -48,10 +48,10 @@ trait DepGraph[Node] {
 
   private def haveNegativeLink(node1: Node, node2: Node): Boolean =
     edgeBetween(node1, node2) match {
-      case Some(Neg)  => true
-      case Some(Pos)  => false
-      case Some(Both) => true
-      case None       => false
+      case Some(Neg) => true
+      case Some(Pos) => false
+      // case Some(Both) => true
+      case None => false
     }
 
   def showEdges(showNode: Node => String = x => x.toString): String
