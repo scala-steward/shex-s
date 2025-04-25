@@ -101,13 +101,13 @@ case class Schema(
   def addTripleExprMap(te: Map[ShapeLabel, TripleExpr]): Schema =
     this.copy(optTripleExprMap = Some(te))
 
-  def oddNegCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
+  lazy val oddNegCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
     Dependencies.oddNegCycles(this)
 
-  def negCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
+  lazy val negCycles: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]] =
     Dependencies.negCycles(this)
 
-  def depGraph: Either[String, DepGraph[ShapeLabel]] =
+  lazy val depGraph: Either[String, DepGraph[ShapeLabel]] =
     Dependencies.depGraph(this)
 
   def showCycles(str: Either[String, Set[Set[(ShapeLabel, ShapeLabel)]]]): String = str match {
@@ -142,9 +142,9 @@ case class Schema(
 
   lazy val wellFormed: Either[String, Unit] = for {
     _ <- checkOddNegCycles
-    // _ <- { println(s"Passed checkOddNegCycles..."); Right(())}
+    _ <- { println(s"Passed checkOddNegCycles..."); Right(()) }
     _ <- checkBadShapeLabels
-    // _ <- { println(s"Passed checkBadShapeLabels..."); Right(())}
+    _ <- { println(s"Passed checkBadShapeLabels..."); Right(()) }
   } yield (())
 
   def relativize(maybeBase: Option[IRI]): Schema = maybeBase match {
@@ -161,7 +161,7 @@ case class Schema(
   def resolve(base: Option[IRI], verbose: VerboseLevel): IO[ResolvedSchema] =
     ResolvedSchema.resolve(this, base, verbose)
 
-  def withId(iri: IRI): Schema = this.copy(id = iri)  
+  def withId(iri: IRI): Schema = this.copy(id = iri)
 
   def withShapes(ses: ShapeExpr*): Schema = this.copy(shapes = ses.toList.some)
 
@@ -176,7 +176,6 @@ object Schema {
 
   def emptyWithId(iri: IRI): Schema =
     Schema.empty.withId(iri)
-
 
   def fromIRI(
       i: IRI,

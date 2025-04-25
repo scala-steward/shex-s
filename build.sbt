@@ -1,13 +1,13 @@
-lazy val scala212 = "2.12.17"
-lazy val scala213 = "2.13.10"
-lazy val scala3 = "3.2.1"
+lazy val scala212 = "2.12.20"
+lazy val scala213 = "2.13.15"
+lazy val scala3 = "3.6.3"
 lazy val supportedScalaVersions = List(
-  scala3,
+  scala212,
   scala213,
-  scala212
+  scala3
 )
 
-val Java11 = JavaSpec.temurin("11") 
+val Java11 = JavaSpec.temurin("11")
 
 lazy val srdfVersion = "0.1.125"
 lazy val utilsVersion = "0.2.25"
@@ -19,7 +19,7 @@ lazy val catsVersion = "2.9.0"
 lazy val catsEffectVersion = "3.4.4"
 lazy val circeVersion = "0.14.2"
 lazy val commonsTextVersion = "1.8"
-lazy val declineVersion = "2.4.1"
+lazy val declineVersion = "2.5.0"
 lazy val fansiVersion = "0.3.0"
 lazy val fs2Version = "3.4.0"
 lazy val jenaVersion = "4.3.2"
@@ -72,7 +72,6 @@ lazy val wdtkUtil = "org.wikidata.wdtk" % "wdtk-util" % wikidataToolkitVersion
 
 lazy val scalacheck = "org.scalacheck" %% "scalacheck" % scalacheckVersion
 lazy val typesafeConfig = "com.typesafe" % "config" % typesafeConfigVersion
-
 
 lazy val logbackClassic = "ch.qos.logback" % "logback-classic" % logbackVersion
 lazy val scalaLogging =
@@ -142,8 +141,8 @@ lazy val shexs = project
       catsEffect,
       decline,
       declineEffect,
-      slf4jAPI,
-      slf4jSimple,
+      // slf4jAPI,
+      // slf4jSimple,
       srdf,
       srdf4j,
       srdfJena,
@@ -252,7 +251,7 @@ lazy val wshex = project
   .settings(
     crossScalaVersions := supportedScalaVersions,
     libraryDependencies ++= Seq(
-      utils, 
+      utils,
       catsCore,
       catsKernel,
       circeCore,
@@ -269,7 +268,7 @@ lazy val wshex = project
       scalaCollCompat,
       srdfJena,
       munit % Test,
-      munitEffect % Test,
+      munitEffect % Test
     ),
     testFrameworks += new TestFramework("munit.Framework")
   )
@@ -580,6 +579,8 @@ lazy val commonSettings = compilationSettings ++ sharedDependencies ++ Seq(
       email = "jelabra@gmail.com",
       url = url("https://weso.labra.es")
     )
-  ),
-  libraryDependencies += compilerPlugin("com.github.ghik" % "zerowaste" % "0.2.1" cross CrossVersion.full)
+  )
+  /*libraryDependencies += compilerPlugin(
+    ("com.github.ghik" % "zerowaste" % "1.0.0").cross(CrossVersion.full)
+  )*/
 ) ++ warnUnusedImport

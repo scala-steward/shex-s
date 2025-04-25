@@ -17,6 +17,7 @@ import io.circe._
 import io.circe.syntax._
 import es.weso.shex.Extends
 import es.weso.shex.References
+import es.weso.shex.Schema
 
 sealed abstract class ShowMethod {
   val name: String
@@ -53,6 +54,7 @@ object ShowMethod {
 case class SchemaCommand(
     schemaSpec: SchemaSpec,
     showInheritance: Boolean,
+    showDependencyGraph: Boolean,
     showMethod: ShowMethod,
     showShape: Option[ShapeLabel],
     verbose: VerboseLevel
@@ -61,8 +63,12 @@ case class SchemaCommand(
     schema <- schemaSpec.getSchema(verbose)
     resolved <- ResolvedSchema.resolve(schema, schemaSpec.baseIRI, verbose)
     _ <- showShapeLabels(resolved)
+    _ <- showWellFormed(schema)
     _ <-
       if (showInheritance) runShowInheritance(resolved)
+      else IO.pure(())
+    _ <-
+      if (showDependencyGraph) showDepGraph(resolved)
       else IO.pure(())
     _ <- showShape match {
       case None     => IO.pure(())
@@ -70,11 +76,31 @@ case class SchemaCommand(
     }
   } yield ExitCode.Success
 
+  private def showWellFormed(schema: Schema): IO[Unit] = {
+    val wellFormed = schema.wellFormed
+    wellFormed match {
+      case Left(msg) =>
+        IO.println(s"Schema is NOT well-formed: ${msg}")
+      case Right(_) =>
+        IO.println("Schema is well-formed")
+    }
+  }
+
   private def showShapeLabels(schema: ResolvedSchema): IO[Unit] = {
     val labels = schema.resolvedMapShapeExprs.keySet
     IO.println(
       s"shape labels: ${if (labels.isEmpty) "[]" else labels.map(schema.qualify(_)).mkString(", ")}"
     )
+  }
+
+  private def showDepGraph(schema: ResolvedSchema): IO[Unit] = {
+    val eitherDepGraph = schema.source.depGraph
+    eitherDepGraph match {
+      case Left(err) =>
+        IO.println(s"Error obtaining dependency graph: $err")
+      case Right(depGraph) =>
+        IO.println(s"Dependency graph:\n${depGraph.showEdges(lbl => schema.qualify(lbl.toRDFNode))}")
+    }
   }
 
   private def runShowInheritance(schema: ResolvedSchema): IO[Unit] = for {
@@ -118,7 +144,9 @@ object SchemaCommand {
 
   val showInheritance: Opts[Boolean] =
     Opts.flag("show-inheritance", short = "i", help = "show inheritance graph").orFalse
-//  val showMethod: Opts[ShowMethod] = Opts.option[String]("show-qualified", short = "q", help = "show shapes qualified by prefix declarations").orFalse
+
+  val showDependencyGraph: Opts[Boolean] =
+    Opts.flag("show-dependency-graph", short = "d", help = "show dependency graph").orFalse
 
   val showShape: Opts[Option[ShapeLabel]] =
     UriOpt.uri("shape", help = "Show shape").map(uri => IRILabel(IRI(uri))).orNone
@@ -128,6 +156,7 @@ object SchemaCommand {
       (
         SchemaSpec.schemaSpec,
         showInheritance,
+        showDependencyGraph,
         ShowMethod.showMethodOpt,
         showShape,
         VerboseLevelOpt.verboseLevel

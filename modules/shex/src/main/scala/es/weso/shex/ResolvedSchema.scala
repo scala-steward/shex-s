@@ -22,6 +22,7 @@ case class ResolvedSchema(
     resolvedMapShapeExprs: Map[ShapeLabel, ResolvedShapeExpr],
     resolvedMapTripleExprs: Map[ShapeLabel, ResolvedTripleExpr],
     inheritanceGraph: Inheritance[ShapeLabel, ShapesRelation],
+    // depGraph: DepGraph[ShapeLabel],
     labelLocationMap: Option[Map[ShapeLabel, Location]]
 ) extends AbstractSchema {
 
